@@ -17,9 +17,7 @@ build = "build/build.rs"
 default-target = "x86_64-unknown-linux-gnu"
 
 [features]
-default = ["std", "pio"]
-
-std = ["embedded-svc/std"]
+default = ["native"]
 
 # Use `platformio` to build the `esp-idf`
 pio = []
@@ -28,7 +26,6 @@ native = ["strum"]
 
 [dependencies]
 mutex-trait = "0.2"
-embedded-svc = "0.10"
 paste = "1"
 
 [build-dependencies]

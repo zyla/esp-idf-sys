@@ -203,7 +203,7 @@ fn build_cargo_first() -> Result<EspIdfBuildOutput> {
     )?;
 
     // Install tools.
-    let mut tools = vec!["ninja", chip.gcc_toolchain()];
+    let mut tools = vec!["ninja"]; //, chip.gcc_toolchain()];
     tools.extend(chip.ulp_gcc_toolchain().iter());
     cmd!(python, &idf_tools_py, "--idf-path", &esp_idf_dir, "install"; env=("IDF_TOOLS_PATH", &sdk_dir), args=(tools))?;
 
@@ -235,14 +235,19 @@ fn build_cargo_first() -> Result<EspIdfBuildOutput> {
         .collect();
     let paths = env::join_paths(bin_paths.iter())?;
 
+    std::fs::create_dir_all(out_dir.join("main"))?;
     // Create cmake project.
     copy_file_if_different(
         manifest_dir.join(path_buf!("resources", "cmake_project", "CMakeLists.txt")),
         &out_dir,
     )?;
     copy_file_if_different(
-        manifest_dir.join(path_buf!("resources", "cmake_project", "main.c")),
-        &out_dir,
+        manifest_dir.join(path_buf!("resources", "cmake_project", "main", "app_main.c")),
+        &out_dir.join(path_buf!("main")),
+    )?;
+    copy_file_if_different(
+        manifest_dir.join(path_buf!("resources", "cmake_project", "main", "CMakeLists.txt")),
+        &out_dir.join(path_buf!("main")),
     )?;
 
     // The `kconfig.cmake` script looks at this variable if it should compile `mconf` on windows.
@@ -298,6 +303,8 @@ fn build_cargo_first() -> Result<EspIdfBuildOutput> {
     let cmake_toolchain_file =
         path_buf![&esp_idf_dir, "tools", "cmake", chip.cmake_toolchain_file()];
 
+    eprintln!("cmake: {:?}", cmake_toolchain_file);
+
     // Get the asm, C and C++ flags from the toolchain file, these would otherwise get
     // overwritten because `cmake::Config` also sets these (see
     // https://github.com/espressif/esp-idf/issues/7507).
@@ -313,6 +320,8 @@ fn build_cargo_first() -> Result<EspIdfBuildOutput> {
     // `cmake::Config` automatically uses `<out_dir>/build` and there is no way to query
     // what build directory it sets, so we hard-code it.
     let cmake_build_dir = out_dir.join("build");
+
+    eprintln!("cmake ok");
 
     let query = cmake::Query::new(
         &cmake_build_dir,
@@ -423,11 +432,14 @@ enum Chip {
     /// RISC-V based single core
     #[strum(serialize = "esp32c3")]
     ESP32C3,
+    /// Xtensa LX6 based single core
+    #[strum(serialize = "esp8266")]
+    ESP8266,
 }
 
 impl Chip {
     fn detect(rust_target_triple: &str) -> Result<Chip> {
-        if rust_target_triple.starts_with("xtensa-esp") {
+        if rust_target_triple.starts_with("xtensa-esp32") {
             if rust_target_triple.contains("esp32s3") {
                 return Ok(Chip::ESP32S3);
             } else if rust_target_triple.contains("esp32s2") {
@@ -435,6 +447,8 @@ impl Chip {
             } else {
                 return Ok(Chip::ESP32);
             }
+        } else if rust_target_triple.starts_with("xtensa-esp8266") {
+            return Ok(Chip::ESP8266);
         } else if rust_target_triple.starts_with("riscv32imc-esp") {
             return Ok(Chip::ESP32C3);
         }
@@ -448,6 +462,7 @@ impl Chip {
             Self::ESP32S2 => "xtensa-esp32s2-elf",
             Self::ESP32S3 => "xtensa-esp32s3-elf",
             Self::ESP32C3 => "riscv32-esp-elf",
+            Self::ESP8266 => "xtensa-lx106-elf",
         }
     }
 
@@ -462,6 +477,6 @@ impl Chip {
     }
 
     fn cmake_toolchain_file(self) -> String {
-        format!("toolchain-{}.cmake", self)
+format!("toolchain-{}.cmake", self)
     }
 }

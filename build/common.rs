@@ -5,9 +5,9 @@ use std::{collections::HashSet, error, fs, iter::once, path::Path, str::FromStr}
 use embuild::{bindgen, build, kconfig};
 
 pub const STABLE_PATCHES: &[&str] = &[
-    "patches/missing_xtensa_atomics_fix.diff",
-    "patches/pthread_destructor_fix.diff",
-    "patches/ping_setsockopt_fix.diff",
+//  "patches/missing_xtensa_atomics_fix.diff",
+//  "patches/pthread_destructor_fix.diff",
+//  "patches/ping_setsockopt_fix.diff",
 ];
 
 #[allow(unused)]
